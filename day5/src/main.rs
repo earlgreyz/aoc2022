@@ -43,7 +43,8 @@ fn parse_move(instruction: &str) -> (usize, usize, usize) {
     (count, from, to)
 }
 
-fn perform_move(stacks: &mut Vec<VecDeque<char>>, count: usize, from: usize, to: usize) {
+#[allow(dead_code)]
+fn perform_move_part_one(stacks: &mut Vec<VecDeque<char>>, count: usize, from: usize, to: usize) {
     for _ in 0..count {
         match stacks[from - 1].pop_front() {
             Some(item) => stacks[to - 1].push_front(item),
@@ -52,14 +53,27 @@ fn perform_move(stacks: &mut Vec<VecDeque<char>>, count: usize, from: usize, to:
     }
 }
 
-fn part_one() {
+fn perform_move_part_two(stacks: &mut Vec<VecDeque<char>>, count: usize, from: usize, to: usize) {
+    let mut items: Vec<char> = Vec::new();
+    for _ in 0..count {
+        match stacks[from - 1].pop_front() {
+            Some(item) => items.push(item),
+            None => panic!("invalid move operation"),
+        }
+    }
+    for item in items.iter().rev() {
+        stacks[to - 1].push_front(*item);
+    }
+}
+
+fn program() {
     let stdin = io::stdin();
     let mut stacks = read_stacks(&stdin);
 
     let mut lines = stdin.lock().lines();
     while let Some(Ok(line)) = lines.next() {
         let (count, from, to) = parse_move(&line);
-        perform_move(&mut stacks, count, from, to);
+        perform_move_part_two(&mut stacks, count, from, to);
     }
 
     for stack in stacks {
@@ -70,5 +84,5 @@ fn part_one() {
 }
 
 fn main() {
-    part_one();
+    program();
 }
