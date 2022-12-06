@@ -5,7 +5,7 @@ mod multiset;
 
 use multiset::MultiSet;
 
-const WINDOW_SIZE: usize = 4;
+const WINDOW_SIZE: usize = 14;
 
 fn main() {
     let stdin = io::stdin();
