@@ -2,6 +2,8 @@ use std::io;
 use std::io::BufRead;
 
 const LIMIT: usize = 100000;
+const TOTAL_STORAGE: usize = 70000000;
+const REQUIRED_FREE_STORAGE: usize = 30000000;
 
 #[derive(Debug)]
 enum Command {
@@ -86,12 +88,22 @@ fn get_dir_sizes(node: &Node, sizes: &mut Vec<usize>) -> usize {
     }
 }
 
+#[allow(dead_code)]
 fn part_one(root: &Node) {
     let mut sizes: Vec<usize> = Vec::new(); 
     get_dir_sizes(&root, &mut sizes);
 
     let result: usize = sizes.iter().filter(|&size| *size <= LIMIT).sum();
     println!("{}", result);
+}
+
+fn part_two(root: &Node) {
+    let mut sizes: Vec<usize> = Vec::new(); 
+    let total_size = get_dir_sizes(&root, &mut sizes);
+    let min_deleted = total_size + REQUIRED_FREE_STORAGE - TOTAL_STORAGE;
+    if let Some(result) = sizes.iter().filter(|&size| *size >= min_deleted).min() {
+        println!("{}", result);
+    }
 }
 
 fn main() {
@@ -102,7 +114,7 @@ fn main() {
         match line.as_ref() {
             "$ cd /" => {
                 let root = build_directory("/".to_string(), &mut lines);
-                part_one(&root);
+                part_two(&root);
             },
             _ => panic!("expected: cd /, got: {}", line),
         }
