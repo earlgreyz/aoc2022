@@ -45,6 +45,7 @@ fn traverse(trees: &mut Vec<Vec<Tree>>, start: (usize, usize), end: (usize, usiz
     }
 }
 
+#[allow(dead_code)]
 fn find_visible_count(trees: &mut Vec<Vec<Tree>>) -> i32 {
     for y in 0..trees.len() {
         // Traverse from left to right;
@@ -61,8 +62,76 @@ fn find_visible_count(trees: &mut Vec<Vec<Tree>>) -> i32 {
     trees.iter().map(|row| row.iter().map(|tree| if tree.visible { 1 } else { 0 } ).sum::<i32>()).sum::<i32>()
 }
 
+
+struct Score {
+    top: usize,
+    bottom: usize,
+    left: usize,
+    right: usize,
+}
+
+impl Score {
+    fn scenic_score(&self) -> usize {
+        self.top * self.bottom * self.left * self.right
+    }
+}
+
+fn find_scores(trees: &mut Vec<Vec<Tree>>) -> Vec<Vec<Score>> {
+    let mut scores: Vec<Vec<Score>> = Vec::new();
+    for y in 0..trees.len() {
+        scores.push((0..trees[y].len()).map(|_| Score{ top: 0, bottom: 0, left: 0, right: 0}).collect());
+    }
+    // Find scores from the left.
+    for y in 0..trees.len() {
+        let mut indexes: [usize; 10] = [0; 10];
+        for x in 0..trees[y].len() {
+            let height = trees[y][x].height as usize;
+            scores[y][x].left = x - indexes[height];
+            for i in 0..=height {
+                indexes[i] = x;
+            }
+        }
+    }
+    // Find scores from the right.
+    for y in 0..trees.len() {
+        let mut indexes: [usize; 10] = [trees[y].len() - 1; 10];
+        for x in (0..trees[y].len()).rev() {
+            let height = trees[y][x].height as usize;
+            scores[y][x].right = indexes[height] - x;
+            for i in 0..=height {
+                indexes[i] = x;
+            }
+        }
+    }
+    // Find scores from the top.
+    for x in 0..trees[0].len() {
+        let mut indexes: [usize; 10] = [0; 10];
+        for y in 0..trees.len() {
+            let height = trees[y][x].height as usize;
+            scores[y][x].top = y - indexes[height];
+            for i in 0..=height {
+                indexes[i] = y;
+            }
+        }
+    }
+    // Find scores from the bottom.
+    for x in 0..trees[0].len() {
+        let mut indexes: [usize; 10] = [trees.len() - 1; 10];
+        for y in (0..trees.len()).rev() {
+            let height = trees[y][x].height as usize;
+            scores[y][x].bottom = indexes[height] - y;
+            for i in 0..=height {
+                indexes[i] = y;
+            }
+        }
+    }
+    scores
+}
+
 fn main() {
     let mut trees = load_trees();
-    let result = find_visible_count(&mut trees);
+    let scores = find_scores(&mut trees);
+
+    let result = scores.iter().map(|row| row.iter().map(|score| score.scenic_score()).max().unwrap()).max().unwrap();
     println!("{}", result);
 }
