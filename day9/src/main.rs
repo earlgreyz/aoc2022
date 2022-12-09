@@ -3,6 +3,9 @@ use std::io::BufRead;
 use std::collections::HashSet;
 use std::cmp;
 
+const ROPE_LEN: usize = 10;
+
+#[derive(Copy, Clone)]
 struct Point {
     x: i32,
     y: i32,
@@ -50,6 +53,7 @@ fn distance(a: &Point, b: &Point) -> i32 {
     cmp::max(x_distance.abs(), y_distance.abs())
 }
 
+#[allow(dead_code)]
 fn part_one() {
     let stdin = io::stdin();
     let mut lines = stdin.lock().lines();
@@ -74,6 +78,31 @@ fn part_one() {
     println!("{}", visited.len());
 }
 
+fn part_two() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    let mut rope: [Point; ROPE_LEN] = [Point{ x: 0, y: 0 }; ROPE_LEN];
+    let mut visited: HashSet<(i32, i32)> = HashSet::new();
+    visited.insert((0, 0));
+
+    while let Some(Ok(line)) = lines.next() {
+        let (count, delta) = parse_move(line.as_ref());
+        for _ in 0..count {
+            rope[0].add_assign(&delta);
+            for i in 1..ROPE_LEN {
+                if distance(&rope[i - 1], &rope[i]) > 1 {
+                    let segment_delta = rope[i - 1].sub(&rope[i]).clamp();
+                    rope[i].add_assign(&segment_delta);
+                }
+            }
+            visited.insert(rope[ROPE_LEN - 1].to_tuple());
+        }
+    }
+
+    println!("{}", visited.len());
+}
+
 fn main() {
-    part_one();
+    part_two();
 }
