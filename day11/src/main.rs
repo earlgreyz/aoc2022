@@ -12,11 +12,12 @@ use crate::parser::{Parser, Object};
 pub mod parser;
 
 const ROUNDS: usize = 20;
+const MORE_ROUNDS: usize = 10000;
 
 #[derive(Debug)]
 enum Value {
     Old,
-    Const(i32),
+    Const(u64),
 }
 
 impl Value {
@@ -28,7 +29,7 @@ impl Value {
         }
     }
 
-    fn eval(&self, old: i32) -> i32 {
+    fn eval(&self, old: u64) -> u64 {
         match self {
             Value::Old => old,
             Value::Const(value) => *value,
@@ -57,7 +58,7 @@ impl Operation {
         }
     }
 
-    fn eval(&self, old: i32) -> i32 {
+    fn eval(&self, old: u64) -> u64 {
         match self {
             Operation::Add(x, y) => x.eval(old) + y.eval(old),
             Operation::Multiply(x, y) => x.eval(old) * y.eval(old),
@@ -67,9 +68,9 @@ impl Operation {
 
 #[derive(Debug)]
 struct Monkey {
-    items: VecDeque<i32>,
+    items: VecDeque<u64>,
     operation: Operation,
-    modulus: i32,
+    modulus: u64,
     pass_true: usize,
     pass_false: usize,
 }
@@ -82,13 +83,13 @@ fn parse_trailing_number<T: FromStr>(trim: &str, text: &str) -> T where <T as Fr
 impl Monkey {
     fn from_object(object: &Object) -> Monkey {
         let items_repr = object.get_property("Starting items").get_value();
-        let items = items_repr.split(", ").map(|item| item.parse::<i32>().unwrap()).collect();
+        let items = items_repr.split(", ").map(|item| item.parse::<u64>().unwrap()).collect();
 
         let operation_repr = object.get_property("Operation").get_value();
         let operation = Operation::from_string(operation_repr);
 
         let test_object = object.get_property("Test");
-        let modulus = parse_trailing_number::<i32>("divisible by ", test_object.get_value());
+        let modulus = parse_trailing_number::<u64>("divisible by ", test_object.get_value());
         let pass_true_repr = test_object.get_property("If true").get_value();
         let pass_true = parse_trailing_number::<usize>("throw to monkey ", pass_true_repr);
         let pass_false_repr = test_object.get_property("If false").get_value();
@@ -150,6 +151,7 @@ fn monkey_business(inspected: &Vec<usize>) -> usize {
     first * second
 }
 
+#[allow(dead_code)]
 fn part_one() {
     let mut monkeys = read_monkeys();
     let mut inspected: Vec<usize> = (0..monkeys.len()).map(|_| 0).collect();
@@ -172,6 +174,33 @@ fn part_one() {
     println!("{}", result);
 }
 
+fn part_two() {
+    let mut monkeys = read_monkeys();
+    let mut inspected: Vec<usize> = (0..monkeys.len()).map(|_| 0).collect();
+
+    let mut modulus = monkeys[0].modulus;
+    for i in 1..monkeys.len() {
+        modulus *= monkeys[i].modulus;
+    }
+
+    for _ in 0..MORE_ROUNDS {
+        for i in 0..monkeys.len() {
+            inspected[i] += monkeys[i].items.len();
+            while let Some(item) = monkeys[i].items.pop_front() {
+                let worry = monkeys[i].operation.eval(item) % modulus;
+                let pass = if worry % monkeys[i].modulus == 0 {
+                    monkeys[i].pass_true
+                } else {
+                    monkeys[i].pass_false
+                };
+                monkeys[pass].items.push_back(worry);
+            }
+        }
+    }
+    let result = monkey_business(&inspected);
+    println!("{}", result);
+}
+
 fn main() {
-    part_one();
+    part_two();
 }
