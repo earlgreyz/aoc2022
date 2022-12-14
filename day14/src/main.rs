@@ -39,11 +39,28 @@ struct Cave {
 
 impl Cave {
     fn at(&self, point: Point) -> Tile {
-        self.tiles[point.y][point.x]
+        self.tiles[point.x][point.y]
     }
 
     fn place(&mut self, point: Point, tile: Tile) {
-        self.tiles[point.y][point.x] = tile;
+        self.tiles[point.x][point.y] = tile;
+    }
+
+    fn expand(&mut self) {
+        // Add padding on the left and right side equal to the height.
+        let width = self.end.y;
+        for _ in 0..width {
+            self.tiles.insert(0, (self.start.y..=self.end.y).map(|_| Tile::Air).collect());
+            self.tiles.push((self.start.y..=self.end.y).map(|_| Tile::Air).collect());
+        }
+        self.start.x -= width;
+        self.end.x += width;
+        // Add "infinite" floor.
+        for x in 0..self.end.x - self.start.x {
+            self.tiles[x].push(Tile::Air);
+            self.tiles[x].push(Tile::Rock);
+        }
+        self.end.y += 2;
     }
 }
 
@@ -64,7 +81,7 @@ fn read_cave() -> Cave {
     let end_y: usize = rock_lines.iter().map(|line| line.iter().map(|point| point.y).max().unwrap()).max().unwrap();
     let end = Point{ x: end_x, y: end_y };
 
-    let mut tiles: Vec<Vec<Tile>> = (start_y..=end_y).map(|_| (start_x..=end_x).map(|_| Tile::Air).collect()).collect();
+    let mut tiles: Vec<Vec<Tile>> = (start_x..=end_x).map(|_| (start_y..=end_y).map(|_| Tile::Air).collect()).collect();
     for rock_line in rock_lines.iter() {
         for segment in rock_line.windows(2) {
             let segment_start = segment[0] - start;
@@ -72,7 +89,7 @@ fn read_cave() -> Cave {
 
             for y in usize::min(segment_start.y, segment_end.y)..=usize::max(segment_start.y, segment_end.y) {
                 for x in usize::min(segment_start.x, segment_end.x)..=usize::max(segment_start.x, segment_end.x) {
-                    tiles[y][x] = Tile::Rock;
+                    tiles[x][y] = Tile::Rock;
                 }
             }
         }
@@ -85,6 +102,7 @@ fn read_cave() -> Cave {
     }
 }
 
+#[allow(dead_code)]
 fn part_one(cave: &mut Cave) {
     let mut settled = 0;
 
@@ -127,7 +145,44 @@ fn part_one(cave: &mut Cave) {
     println!("{}", settled);
 }
 
+
+fn part_two(cave: &mut Cave) {
+    cave.expand();
+    let mut settled = 0;
+
+    'main: loop {
+        let mut particle = Point{ x: 500, y: 0 } - cave.start; // Normalise starting position.
+        if cave.at(particle) == Tile::Particle {
+            break 'main;
+        }
+
+        'particle: loop {
+            if cave.at(particle + Point{ x: 0, y: 1 }) == Tile::Air {
+                particle = particle + Point{ x: 0, y: 1 };
+                continue 'particle;
+            }
+
+            if cave.at(particle - Point{ x: 1, y: 0 } + Point{ x: 0, y: 1 }) == Tile::Air {
+                particle = particle - Point{ x: 1, y: 0 } + Point{ x: 0, y: 1 };
+                continue 'particle;
+            }
+
+
+            if cave.at(particle + Point{ x: 1, y: 1 }) == Tile::Air {
+                particle = particle + Point{ x: 1, y: 1 };
+                continue 'particle;
+            }
+
+            cave.place(particle, Tile::Particle);
+            settled += 1;
+            break 'particle;
+        }
+    }
+
+    println!("{}", settled);
+}
+
 fn main() {
     let mut cave = read_cave();
-    part_one(&mut cave);
+    part_two(&mut cave);
 }
